@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /tools/
+Disallow: /tests/
+
+Sitemap: https://globalradio3d.com/sitemap.xml

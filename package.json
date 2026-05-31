@@ -9,6 +9,7 @@
     "build:regulatory": "node tools/build-regulatory.mjs tools/sources/anatel.config.json",
     "build:states": "node tools/build-states.mjs",
     "build:icons": "node tools/gen-icons.mjs",
+    "build:og": "node tools/gen-og.mjs",
     "stamp:sw": "node tools/stamp-sw.mjs",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
