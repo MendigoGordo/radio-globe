@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#05070f" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-  <title>Radio Globe — Radios AM/FM do mundo</title>
+  <title>Global Radio 3D — Radios AM/FM do mundo</title>
   <link rel="preconnect" href="https://all.api.radio-browser.info" crossorigin />
   <link rel="dns-prefetch" href="https://de1.api.radio-browser.info" />
   <link rel="stylesheet" href="style.css" />
@@ -20,7 +20,7 @@
     <div class="brand">
       <span class="logo" aria-hidden="true">📡</span>
       <div class="brand-text">
-        <strong>Radio Globe</strong>
+        <strong>Global Radio 3D</strong>
         <small data-i18n="brand.tagline">Radios AM / FM ao redor do planeta</small>
       </div>
     </div>
@@ -162,7 +162,7 @@
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("sw.js").catch((e) =>
-          console.warn("[RadioGlobe] SW nao registrado:", e));
+          console.warn("[GlobalRadio3D] SW nao registrado:", e));
       });
     }
   </script>

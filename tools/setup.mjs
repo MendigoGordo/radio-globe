@@ -36,7 +36,7 @@ function run(cmd) {
 function download(url, dest) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
-    const req = https.get(url, { headers: { "User-Agent": "radio-globe-setup" } }, (res) => {
+    const req = https.get(url, { headers: { "User-Agent": "global-radio-3d-setup" } }, (res) => {
       if (res.statusCode === 301 || res.statusCode === 302) {
         file.close(); fs.rmSync(dest, { force: true });
         return download(res.headers.location, dest).then(resolve, reject);
@@ -53,7 +53,7 @@ function download(url, dest) {
 }
 
 async function main() {
-  console.log("== Radio Globe :: setup ==");
+  console.log("== Global Radio 3D :: setup ==");
 
   // 1) dependencias
   try {

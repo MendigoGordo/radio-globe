@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================
-REM Radio Globe - servidor local HTTP (necessario para o WebGL)
+REM Global Radio 3D - servidor local HTTP (necessario para o WebGL)
 REM Abrir via file:// NAO funciona: o navegador bloqueia as
 REM texturas do globo. Este script serve a pasta por HTTP.
 REM ============================================================
@@ -9,7 +9,7 @@ set PORT=8777
 cd /d "%~dp0"
 
 echo.
-echo  Radio Globe -- iniciando servidor local em http://localhost:%PORT%
+echo  Global Radio 3D -- iniciando servidor local em http://localhost:%PORT%
 echo  (Ctrl+C para parar)
 echo.
 

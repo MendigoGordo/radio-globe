@@ -55,7 +55,7 @@
   function render() {
     if (!STATE.el) return;
     const color = STATE.fps >= 50 ? "#36d399" : STATE.fps >= 30 ? "#ffb547" : "#ff6b6b";
-    const n = (global.RadioGlobeStats && global.RadioGlobeStats.visibleCount) || 0;
+    const n = (global.GlobalRadio3DStats && global.GlobalRadio3DStats.visibleCount) || 0;
     STATE.el.style.color = color;
     STATE.el.textContent = `FPS ${STATE.fps}  (avg ${STATE.avg})\n${n.toLocaleString("pt-BR")} pts`;
   }

@@ -1,6 +1,6 @@
 name: CI
 
-# Assume que a RAIZ do repositorio e a pasta radio-globe (onde estao
+# Assume que a RAIZ do repositorio e a pasta do projeto (onde estao
 # package.json e playwright.config.mjs). Se o repo tiver o projeto em um
 # subdiretorio, mova este arquivo para <raiz>/.github/workflows/ e ajuste
 # os caminhos/working-directory de acordo.

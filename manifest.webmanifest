@@ -1,6 +1,6 @@
 {
-  "name": "Radio Globe — Radios AM/FM do mundo",
-  "short_name": "Radio Globe",
+  "name": "Global Radio 3D — Radios AM/FM do mundo",
+  "short_name": "Global Radio 3D",
   "description": "Globo 3D interativo com radios AM e FM do mundo todo, estilo Google Earth.",
   "start_url": "./",
   "scope": "./",

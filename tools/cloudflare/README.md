@@ -22,7 +22,7 @@ npx wrangler deploy       # publica o Worker
 Ao final, o Wrangler mostra a URL pública, algo como:
 
 ```
-https://radio-globe-api.SEU-SUBDOMINIO.workers.dev
+https://global-radio-3d-api.SEU-SUBDOMINIO.workers.dev
 ```
 
 ## Ativar no site
@@ -30,7 +30,7 @@ https://radio-globe-api.SEU-SUBDOMINIO.workers.dev
 Cole a URL acima em `data/config.js`:
 
 ```js
-window.RADIO_GLOBE_API_PROXY = "https://radio-globe-api.SEU-SUBDOMINIO.workers.dev";
+window.GLOBAL_RADIO_3D_API_PROXY = "https://global-radio-3d-api.SEU-SUBDOMINIO.workers.dev";
 ```
 
 Pronto. O app passa a usar o Worker antes dos mirrors públicos. Para voltar ao
@@ -40,18 +40,18 @@ comportamento padrão (sem proxy), deixe a string vazia.
 
 ```bash
 # healthcheck
-curl https://radio-globe-api.SEU-SUBDOMINIO.workers.dev/health
+curl https://global-radio-3d-api.SEU-SUBDOMINIO.workers.dev/health
 
 # catálogo (primeira vez MISS, depois HIT e bem mais rápido)
 curl -s -D - -o /dev/null \
-  "https://radio-globe-api.SEU-SUBDOMINIO.workers.dev/json/stations/search?has_geo_info=true&hidebroken=true&limit=12000"
+  "https://global-radio-3d-api.SEU-SUBDOMINIO.workers.dev/json/stations/search?has_geo_info=true&hidebroken=true&limit=12000"
 # veja o cabeçalho X-RG-Cache: MISS (1ª vez) / HIT (próximas)
 ```
 
 ## O que ele faz / não faz
 
 - **Faz:** proxy das rotas `/json/...`, cache no edge (TTL: estações 1 h,
-  países 24 h), CORS liberado, failover entre 5 mirrors.
+  países 24 h), CORS liberado, failover entre os mirrors.
 - **Não faz:** não cacheia streams de áudio nem expõe segredos (não há nenhum).
   Só repassa uma API pública.
 

@@ -52,5 +52,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Radio Globe em http://localhost:${PORT}  (Ctrl+C para parar)`);
+  console.log(`Global Radio 3D em http://localhost:${PORT}  (Ctrl+C para parar)`);
 });

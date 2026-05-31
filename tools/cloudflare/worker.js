@@ -1,5 +1,5 @@
 /* =========================================================================
- * Radio Globe — Cloudflare Worker (proxy + cache na borda do Radio Browser)
+ * Global Radio 3D — Cloudflare Worker (proxy + cache na borda do Radio Browser)
  *
  * Por que existe:
  *   A API publica do Radio Browser e lenta para devolver o catalogo completo
@@ -54,7 +54,7 @@ async function fetchMirror(base, path, search) {
   try {
     const res = await fetch(`${base}${path}${search}`, {
       signal: ctrl.signal,
-      headers: { "User-Agent": "radio-globe-worker/1.0" },
+      headers: { "User-Agent": "global-radio-3d-worker/1.0" },
       cf: { cacheEverything: false },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -78,7 +78,7 @@ export default {
 
     // Healthcheck simples.
     if (url.pathname === "/" || url.pathname === "/health") {
-      return new Response(JSON.stringify({ ok: true, service: "radio-globe-worker" }), {
+      return new Response(JSON.stringify({ ok: true, service: "global-radio-3d-worker" }), {
         headers: { "Content-Type": "application/json", ...CORS },
       });
     }

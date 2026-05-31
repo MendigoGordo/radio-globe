@@ -14,8 +14,8 @@
  * ========================================================================= */
 
 // __CACHE_VERSION__ e substituido por tools/stamp-sw.mjs no deploy.
-const CACHE_VERSION = "926057dbc681";
-const CACHE_NAME = `radio-globe-${CACHE_VERSION}`;
+const CACHE_VERSION = "be59ffc62c62";
+const CACHE_NAME = `global-radio-3d-${CACHE_VERSION}`;
 
 const PRECACHE = [
   "./",

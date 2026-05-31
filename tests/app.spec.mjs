@@ -210,12 +210,12 @@ test("clicar num item da lista abre o painel da estacao certa", async ({ page })
   await expect(page.locator("#pName")).toHaveText(name);
 });
 
-test("usa o proxy (Cloudflare) quando configurado em RADIO_GLOBE_API_PROXY", async ({ page }) => {
-  const PROXY = "https://radio-globe-proxy.test";
+test("usa o proxy (Cloudflare) quando configurado em GLOBAL_RADIO_3D_API_PROXY", async ({ page }) => {
+  const PROXY = "https://global-radio-3d-proxy.test";
   let proxyHit = false;
 
   // injeta a config do proxy ANTES de qualquer script do app rodar
-  await page.addInitScript((proxy) => { window.RADIO_GLOBE_API_PROXY = proxy; }, PROXY);
+  await page.addInitScript((proxy) => { window.GLOBAL_RADIO_3D_API_PROXY = proxy; }, PROXY);
 
   // intercepta as chamadas ao proxy e responde com os mocks
   await page.route(`${PROXY}/**`, (route) => {

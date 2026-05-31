@@ -9,10 +9,10 @@
  * Como ativar:
  *   1) Faca o deploy do Worker em tools/cloudflare/ (veja o README de la).
  *   2) Cole a URL publica do Worker abaixo, ex.:
- *        window.RADIO_GLOBE_API_PROXY = "https://radio-globe-api.SEU.workers.dev";
+ *        window.GLOBAL_RADIO_3D_API_PROXY = "https://global-radio-3d-api.SEU.workers.dev";
  *
  * Deixe string vazia para usar apenas os mirrors publicos (comportamento padrao).
  * ========================================================================= */
 
 // Nao sobrescreve se ja definido (ex.: por um script anterior ou ?apiProxy=).
-window.RADIO_GLOBE_API_PROXY = window.RADIO_GLOBE_API_PROXY || "";
+window.GLOBAL_RADIO_3D_API_PROXY = window.GLOBAL_RADIO_3D_API_PROXY || "";

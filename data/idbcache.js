@@ -18,7 +18,7 @@
 (function (global) {
   "use strict";
 
-  const DB_NAME = "radio-globe";
+  const DB_NAME = "global-radio-3d";
   const STORE = "kv";
   const DB_VERSION = 1;
   const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000; // 12 h

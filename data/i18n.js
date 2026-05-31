@@ -1,7 +1,7 @@
 /* =========================================================================
  * i18n.js — Internacionalizacao (PT-BR / EN / ES).
  *
- * O Radio Globe e uma experiencia de curiosidade ("trivia"): explorar as
+ * O Global Radio 3D e uma experiencia de curiosidade ("trivia"): explorar as
  * radios AM/FM do planeta. Para alcance global, toda a interface e traduzivel.
  *
  * Como funciona:

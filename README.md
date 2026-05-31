@@ -1,8 +1,8 @@
-# Radio Globe
+# Global Radio 3D
 
 Globo 3D interativo (estilo Google Earth) que mostra rádios AM/FM do mundo todo,
 com player ao vivo, divisas e nomes de países/estados, e classificação de banda
-por plano de frequência.
+por plano de frequência. Site: **globalradio3d.com**.
 
 - **Dados:** [Radio Browser](https://www.radio-browser.info) (estações) e
   [Natural Earth](https://www.naturalearthdata.com) (fronteiras, domínio público).

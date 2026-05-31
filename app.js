@@ -1,5 +1,5 @@
 /* =========================================================================
- * Radio Globe — globo 3D com radios AM/FM do mundo (estilo Google Earth)
+ * Global Radio 3D — globo 3D com radios AM/FM do mundo (estilo Google Earth)
  *
  * Fonte de dados: Radio Browser API (https://www.radio-browser.info)
  * Renderizacao : globe.gl (Three.js / WebGL) — servido localmente em vendor/
@@ -26,14 +26,14 @@
   // Proxy/cache opcional na borda (Cloudflare Worker). Quando definido, e usado
   // ANTES dos mirrors: ele cacheia a resposta pesada no edge e serve rapido a
   // todos os usuarios (alem de resolver CORS). Veja tools/cloudflare/.
-  // Fontes (precedencia): ?apiProxy= na URL  ->  window.RADIO_GLOBE_API_PROXY.
-  // Ex.: "https://radio-globe-api.SEU-SUBDOMINIO.workers.dev"
+  // Fontes (precedencia): ?apiProxy= na URL  ->  window.GLOBAL_RADIO_3D_API_PROXY.
+  // Ex.: "https://global-radio-3d-api.SEU-SUBDOMINIO.workers.dev"
   function resolveApiProxy() {
     try {
       const p = new URLSearchParams(location.search).get("apiProxy");
       if (p && /^https:\/\//i.test(p)) return p;
     } catch (_) {}
-    return window.RADIO_GLOBE_API_PROXY || "";
+    return window.GLOBAL_RADIO_3D_API_PROXY || "";
   }
   const API_PROXY = resolveApiProxy().replace(/\/+$/, "");
 
@@ -62,6 +62,19 @@
   // que estao na regiao visivel da camera, ate um teto. As demais seguem
   // carregadas (lista, filtros, contagem) — so nao sao desenhadas.
   const MAX_RENDERED_POINTS = 1200;
+
+  // Tamanho do ponto conforme a aproximacao: quanto mais perto (altitude
+  // menor), menores os pontos — assim radios proximas se separam visualmente
+  // em vez de virar um borrao. Interpola entre os limites por altitude.
+  function pointRadiusForAltitude(alt) {
+    // alt ~0.6 (entrada no modo pontos) -> raio maior; alt ~0.05 (bem perto) -> menor
+    const hi = 0.22, lo = 0.06;          // raios nos extremos
+    const aHi = 0.6, aLo = 0.08;         // altitudes correspondentes
+    if (alt >= aHi) return hi;
+    if (alt <= aLo) return lo;
+    const tt = (alt - aLo) / (aHi - aLo);
+    return lo + (hi - lo) * tt;
+  }
 
   const BAND = { ALL: "all", FM: "fm", AM: "am" };
   const COLORS = { fm: "#36d399", am: "#ffb547", net: "#8b93a7" };
@@ -96,6 +109,7 @@
     listOpen: false,    // painel-lista lateral
     listCursor: -1,     // indice ativo na navegacao por teclado
     pov: { lat: 15, lng: -40, altitude: 2.4 },  // ultima posicao da camera
+    pointRadius: 0.22,  // raio atual dos pontos (escala com o zoom)
   };
 
   /* ----------------------------- DOM -------------------------------------- */
@@ -258,7 +272,7 @@
       && raw.length >= WORKER_THRESHOLD;
     if (useWorker) {
       return normalizeViaWorker(raw).catch((err) => {
-        console.warn("[RadioGlobe] Worker falhou, usando main thread:", err);
+        console.warn("[GlobalRadio3D] Worker falhou, usando main thread:", err);
         return normalizeSync(raw);
       });
     }
@@ -366,8 +380,8 @@
     renderList();
     el.statCount.textContent = state.visible.length.toLocaleString(I18N.getLang());
     // expoe contagem para o medidor de FPS
-    window.RadioGlobeStats = window.RadioGlobeStats || {};
-    window.RadioGlobeStats.visibleCount = state.visible.length;
+    window.GlobalRadio3DStats = window.GlobalRadio3DStats || {};
+    window.GlobalRadio3DStats.visibleCount = state.visible.length;
     syncURL();
   }
 
@@ -457,7 +471,7 @@
       .pointsData([])
       .pointLat("lat").pointLng("lng")
       .pointAltitude(0.01)
-      .pointRadius(0.25)
+      .pointRadius(pointRadiusForAltitude(0.6))
       .pointColor((d) => COLORS[d.band] || COLORS.net)
       .pointLabel(pointLabelHTML)
       .onPointClick(onStationClick)
@@ -482,7 +496,7 @@
     controls.autoRotateSpeed = 0.35;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.minDistance = 120;
+    controls.minDistance = 101;   // permite aproximar mais (separa regioes densas)
 
     globe.pointOfView({ lat: 15, lng: -40, altitude: 2.4 }, 0);
     globe.onZoom(onZoom);
@@ -503,6 +517,11 @@
     const newMode = wantPoints ? "points" : "hex";
     if (newMode !== state.mode) {
       state.mode = newMode;
+      if (wantPoints) {
+        // ajusta o tamanho dos pontos para a altitude atual ao entrar no modo
+        state.pointRadius = pointRadiusForAltitude(pov.altitude);
+        globe.pointRadius(state.pointRadius);
+      }
       renderLayers();
       updateModeBadge();
       // Ao aproximar (modo "Estacoes"), pausa a rotacao automatica: e quando
@@ -513,6 +532,13 @@
       // camera se move (culling por viewport). Debounced para nao re-renderizar
       // a cada quadro durante o arrasto/voo.
       scheduleViewportRender();
+      // Escala o tamanho dos pontos conforme o zoom para que radios proximas
+      // nao se sobreponham (so atualiza quando muda de forma perceptivel).
+      const r = pointRadiusForAltitude(pov.altitude);
+      if (Math.abs(r - state.pointRadius) > 0.005) {
+        state.pointRadius = r;
+        globe.pointRadius(r);
+      }
     }
     // LOD das divisas/nomes e caro (point-in-polygon em ~170 paises). Durante o
     // voo de aproximacao o onZoom dispara a cada quadro, entao adiamos para
@@ -1128,7 +1154,7 @@
           await window.RadioRegulatory.loadCountry(state.country).catch(() => {});
         }
         const { confirmed } = window.RadioRegulatory.refine(state.allStations);
-        if (confirmed) console.info(`[RadioGlobe] ${confirmed} estacoes confirmadas via base regulatoria.`);
+        if (confirmed) console.info(`[GlobalRadio3D] ${confirmed} estacoes confirmadas via base regulatoria.`);
       }
       applyFilters();
       updateModeBadge();
@@ -1138,7 +1164,7 @@
       }
     } catch (err) {
       el.loadingText.textContent = t("loading.error");
-      console.error("[RadioGlobe] Falha no carregamento:", err);
+      console.error("[GlobalRadio3D] Falha no carregamento:", err);
       return;
     }
     hideLoading();
@@ -1163,7 +1189,7 @@
       // reflete o pais vindo da URL no select (apos popular as opcoes)
       if (state.country) el.country.value = state.country;
     } catch (err) {
-      console.warn("[RadioGlobe] Nao foi possivel carregar a lista de paises:", err);
+      console.warn("[GlobalRadio3D] Nao foi possivel carregar a lista de paises:", err);
     }
   }
 
@@ -1333,7 +1359,7 @@
     // Divisas e nomes de paises/estados (opcional, nao bloqueia o resto).
     if (!IS_FILE_PROTOCOL && window.RadioGeoLayers) {
       window.RadioGeoLayers.init(globe).catch((e) =>
-        console.warn("[RadioGlobe] camada geografica indisponivel:", e));
+        console.warn("[GlobalRadio3D] camada geografica indisponivel:", e));
     }
     // 3) carrega base regulatoria (opcional) e so entao as estacoes,
     //    para ja aplicar o cruzamento na primeira renderizacao.

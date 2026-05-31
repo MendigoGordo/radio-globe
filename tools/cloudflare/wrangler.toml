@@ -1,8 +1,8 @@
-name = "radio-globe-api"
+name = "global-radio-3d-api"
 main = "worker.js"
 compatibility_date = "2024-11-01"
 
 # Sem bindings/segredos: o Worker so faz proxy+cache de uma API publica.
 # Apos o deploy, a URL publica sera algo como:
-#   https://radio-globe-api.SEU-SUBDOMINIO.workers.dev
-# Cole essa URL em data/config.js (window.RADIO_GLOBE_API_PROXY).
+#   https://global-radio-3d-api.SEU-SUBDOMINIO.workers.dev
+# Cole essa URL em data/config.js (window.GLOBAL_RADIO_3D_API_PROXY).
