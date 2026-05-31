@@ -682,7 +682,8 @@
   /** Seleciona uma estacao (origem: globo OU lista) e atualiza tudo. */
   function selectStation(station, { fly = true, openPanel = true } = {}) {
     state.selected = station;
-    if (fly && globe) {
+    if (fly && globe && Number.isFinite(station.lat) && Number.isFinite(station.lng)) {
+      if (state.rotating) setRotating(false);
       globe.pointOfView({ lat: station.lat, lng: station.lng, altitude: 0.55 }, 900);
     }
     if (openPanel) showPanel(station);
