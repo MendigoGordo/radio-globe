@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 
+// Idioma estavel (pt-BR) independente do navegador de CI, para asserts de texto.
+test.use({ locale: "pt-BR" });
+
 /* ---------------------------------------------------------------------------
  * Dados mockados da API Radio Browser (deterministico, sem rede externa).
  * ------------------------------------------------------------------------- */
@@ -119,7 +122,7 @@ test("o cache IndexedDB armazena o catalogo de estacoes", async ({ page }) => {
   const hasEntry = await page.evaluate(async () => {
     if (!window.RadioIDB || !window.RadioIDB.supported) return "unsupported";
     // a chave usa o padrao stations:<pais|world>:<limite>
-    const v = await window.RadioIDB.get("stations:world:8000");
+    const v = await window.RadioIDB.get("stations:world:12000");
     return Array.isArray(v) && v.length > 0;
   });
   expect(["unsupported", true]).toContainEqual(hasEntry);
@@ -134,4 +137,95 @@ test("o toggle de divisas/nomes alterna a camada geografica", async ({ page }) =
   await expect(btn).toHaveAttribute("aria-pressed", "false");
   await btn.click();
   await expect(btn).toHaveClass(/is-active/);
+});
+
+/* ---------------------------------------------------------------------------
+ * Novas funcionalidades: ordenacao, i18n, lista acessivel e player.
+ * ------------------------------------------------------------------------- */
+
+test("ordenacao reflete na URL e reordena as estacoes", async ({ page }) => {
+  await page.goto("/index.html");
+  await expect(page.locator("#statCount")).not.toHaveText("0", { timeout: 20_000 });
+
+  await page.locator("#sortSelect").selectOption("name");
+  await expect(page).toHaveURL(/sort=name/);
+
+  // abre a lista e confere que o primeiro item respeita ordem alfabetica
+  await page.locator("#toggleList").click();
+  const firstName = await page.locator("#listItems .list-item .li-name").first().textContent();
+  // "Alpha FM..." vem antes de "Lounge..." e "Radio Globo..."
+  expect(firstName).toMatch(/Alpha/);
+});
+
+test("o seletor de idioma traduz a interface (i18n)", async ({ page }) => {
+  await page.goto("/index.html");
+  await expect(page.locator(".band-btn[data-band='all']")).toHaveText("Todas", { timeout: 20_000 });
+
+  await page.locator("#langSelect").selectOption("en");
+  await expect(page.locator(".band-btn[data-band='all']")).toHaveText("All");
+  await expect(page).toHaveURL(/lang=en/);
+  // atributo lang do documento acompanha
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+});
+
+test("?lang=es carrega a interface em espanhol", async ({ page }) => {
+  await page.goto("/index.html?lang=es");
+  await expect(page.locator(".band-btn[data-band='all']")).toHaveText("Todas", { timeout: 20_000 });
+  await expect(page.locator("#sortSelect option[value='votes']")).toHaveText("Más votadas");
+});
+
+test("a lista de estacoes abre e navega por teclado", async ({ page }) => {
+  await page.goto("/index.html");
+  await expect(page.locator("#statCount")).not.toHaveText("0", { timeout: 20_000 });
+
+  await page.locator("#toggleList").click();
+  const panel = page.locator("#listPanel");
+  await expect(panel).not.toHaveClass(/hidden/);
+  await expect(page.locator("#toggleList")).toHaveAttribute("aria-pressed", "true");
+
+  // ha itens renderizados
+  const items = page.locator("#listItems .list-item");
+  expect(await items.count()).toBeGreaterThan(0);
+
+  // navegacao por teclado: seta para baixo marca um item ativo
+  await page.locator("#listItems").focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator("#listItems .list-item.is-cursor")).toHaveCount(1);
+
+  // Enter abre o painel de detalhes
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#panel")).not.toHaveClass(/hidden/);
+});
+
+test("clicar num item da lista abre o painel da estacao certa", async ({ page }) => {
+  await page.goto("/index.html");
+  await expect(page.locator("#statCount")).not.toHaveText("0", { timeout: 20_000 });
+
+  await page.locator("#toggleList").click();
+  const first = page.locator("#listItems .list-item").first();
+  const name = (await first.locator(".li-name").textContent()).trim();
+  await first.click();
+
+  await expect(page.locator("#panel")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#pName")).toHaveText(name);
+});
+
+test("usa o proxy (Cloudflare) quando configurado em RADIO_GLOBE_API_PROXY", async ({ page }) => {
+  const PROXY = "https://radio-globe-proxy.test";
+  let proxyHit = false;
+
+  // injeta a config do proxy ANTES de qualquer script do app rodar
+  await page.addInitScript((proxy) => { window.RADIO_GLOBE_API_PROXY = proxy; }, PROXY);
+
+  // intercepta as chamadas ao proxy e responde com os mocks
+  await page.route(`${PROXY}/**`, (route) => {
+    const url = route.request().url();
+    proxyHit = true;
+    const body = url.includes("/countries") ? JSON.stringify(MOCK_COUNTRIES) : JSON.stringify(MOCK_STATIONS);
+    return route.fulfill({ status: 200, contentType: "application/json", body });
+  });
+
+  await page.goto("/index.html");
+  await expect(page.locator("#statCount")).not.toHaveText("0", { timeout: 20_000 });
+  expect(proxyHit).toBe(true);
 });

@@ -8,7 +8,8 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <title>Radio Globe — Radios AM/FM do mundo</title>
-  <link rel="preconnect" href="https://de1.api.radio-browser.info" crossorigin />
+  <link rel="preconnect" href="https://all.api.radio-browser.info" crossorigin />
+  <link rel="dns-prefetch" href="https://de1.api.radio-browser.info" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -20,47 +21,67 @@
       <span class="logo" aria-hidden="true">📡</span>
       <div class="brand-text">
         <strong>Radio Globe</strong>
-        <small>Radios AM / FM ao redor do planeta</small>
+        <small data-i18n="brand.tagline">Radios AM / FM ao redor do planeta</small>
       </div>
     </div>
 
     <div class="filters">
       <div class="band-toggle" role="group" aria-label="Filtrar por banda">
-        <button class="band-btn is-active" data-band="all">Todas</button>
-        <button class="band-btn" data-band="fm">FM</button>
-        <button class="band-btn" data-band="am">AM</button>
+        <button class="band-btn is-active" data-band="all" data-i18n="band.all">Todas</button>
+        <button class="band-btn" data-band="fm" data-i18n="band.fm">FM</button>
+        <button class="band-btn" data-band="am" data-i18n="band.am">AM</button>
       </div>
 
       <select id="countrySelect" aria-label="Filtrar por pais">
-        <option value="">🌍 Top mundial</option>
+        <option value="" data-i18n="country.top">🌍 Top mundial</option>
+      </select>
+
+      <select id="sortSelect" data-i18n-attr="aria-label:sort.aria">
+        <option value="relevance" data-i18n="sort.relevance">Mais ouvidas</option>
+        <option value="votes" data-i18n="sort.votes">Mais votadas</option>
+        <option value="name" data-i18n="sort.name">Nome (A–Z)</option>
+        <option value="band" data-i18n="sort.band">Banda (FM/AM)</option>
       </select>
 
       <div class="search-box">
-        <input id="searchInput" type="search" placeholder="Buscar estacao ou tag..." aria-label="Buscar estacao" autocomplete="off" />
+        <input id="searchInput" type="search" data-i18n-attr="placeholder:search.placeholder;aria-label:search.aria" placeholder="Buscar estacao ou tag..." aria-label="Buscar estacao" autocomplete="off" />
       </div>
 
-      <button id="toggleGeo" class="icon-btn is-active" title="Mostrar/ocultar divisas e nomes" aria-label="Divisas e nomes" aria-pressed="true">🗺</button>
-      <button id="toggleRotate" class="icon-btn" title="Pausar/retomar rotacao" aria-label="Pausar rotacao">⏸</button>
+      <button id="toggleList" class="icon-btn" data-i18n-attr="title:toggle.list.open;aria-label:toggle.list.open" title="Mostrar lista de estacoes" aria-label="Mostrar lista de estacoes" aria-pressed="false" aria-controls="listPanel">☰</button>
+      <button id="toggleGeo" class="icon-btn is-active" data-i18n-attr="title:toggle.geo;aria-label:toggle.geo" title="Mostrar/ocultar divisas e nomes" aria-label="Divisas e nomes" aria-pressed="true">🗺</button>
+      <button id="toggleRotate" class="icon-btn" data-i18n-attr="title:toggle.rotate.pause;aria-label:toggle.rotate.pause" title="Pausar/retomar rotacao" aria-label="Pausar rotacao">⏸</button>
+
+      <select id="langSelect" data-i18n-attr="aria-label:lang.aria" aria-label="Idioma"></select>
     </div>
   </header>
 
   <!-- Stats badge -->
   <div id="stats" class="stats" aria-live="polite">
-    <span id="statCount">0</span> estacoes
+    <span id="statCount">0</span> <span data-i18n="stats.stations">estacoes</span>
     <span class="mode-badge" id="modeBadge" title="Modo de visualizacao">Agrupado</span>
   </div>
+
+  <!-- Station list (accessible, keyboard-navigable) -->
+  <aside id="listPanel" class="list-panel hidden" aria-label="Lista de estacoes" aria-hidden="true">
+    <div class="list-head">
+      <h2 id="listTitle" data-i18n="list.title">Estacoes</h2>
+      <button id="listClose" class="panel-close" data-i18n-attr="aria-label:panel.close" aria-label="Fechar">×</button>
+    </div>
+    <p class="list-hint" data-i18n="list.hint">Use ↑ ↓ para navegar e Enter para explorar</p>
+    <ul id="listItems" class="list-items" role="listbox" tabindex="0" aria-label="Estacoes" aria-activedescendant=""></ul>
+  </aside>
 
   <!-- Loading -->
   <div id="loading" class="loading hidden">
     <div class="spinner" aria-hidden="true"></div>
-    <span id="loadingText">Carregando estacoes...</span>
+    <span id="loadingText" data-i18n="loading.stations">Carregando estacoes...</span>
   </div>
 
   <!-- Station detail panel -->
   <aside id="panel" class="panel hidden" aria-label="Detalhes da estacao">
-    <button id="panelClose" class="panel-close" aria-label="Fechar">×</button>
+    <button id="panelClose" class="panel-close" data-i18n-attr="aria-label:panel.close" aria-label="Fechar">×</button>
     <div class="panel-head">
-      <img id="pFavicon" class="p-favicon" alt="" />
+      <img id="pFavicon" class="p-favicon" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" />
       <div>
         <h2 id="pName">—</h2>
         <p id="pLocation" class="p-location">—</p>
@@ -68,52 +89,52 @@
     </div>
 
     <div class="player">
-      <button id="playBtn" class="play-btn" aria-label="Tocar">▶</button>
+      <button id="playBtn" class="play-btn" data-i18n-attr="aria-label:player.play" aria-label="Tocar">▶</button>
       <div class="player-meta">
-        <span id="pNowPlaying">Pronto para tocar</span>
+        <span id="pNowPlaying" data-i18n="player.ready">Pronto para tocar</span>
         <div class="volume">
           <span aria-hidden="true">🔊</span>
-          <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume" />
+          <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" data-i18n-attr="aria-label:volume.aria" aria-label="Volume" />
         </div>
       </div>
     </div>
 
     <dl class="p-info">
-      <div><dt>Banda</dt><dd id="pBand">—</dd></div>
-      <div><dt>Frequencia</dt><dd id="pFreq">—</dd></div>
-      <div><dt>Codec</dt><dd id="pCodec">—</dd></div>
-      <div><dt>Bitrate</dt><dd id="pBitrate">—</dd></div>
-      <div><dt>Idioma</dt><dd id="pLanguage">—</dd></div>
-      <div><dt>Votos</dt><dd id="pVotes">—</dd></div>
+      <div><dt data-i18n="panel.band">Banda</dt><dd id="pBand">—</dd></div>
+      <div><dt data-i18n="panel.freq">Frequencia</dt><dd id="pFreq">—</dd></div>
+      <div><dt data-i18n="panel.codec">Codec</dt><dd id="pCodec">—</dd></div>
+      <div><dt data-i18n="panel.bitrate">Bitrate</dt><dd id="pBitrate">—</dd></div>
+      <div><dt data-i18n="panel.language">Idioma</dt><dd id="pLanguage">—</dd></div>
+      <div><dt data-i18n="panel.votes">Votos</dt><dd id="pVotes">—</dd></div>
     </dl>
 
     <div id="pTags" class="p-tags"></div>
 
-    <a id="pHomepage" class="p-homepage" href="#" target="_blank" rel="noopener noreferrer">Site oficial ↗</a>
+    <a id="pHomepage" class="p-homepage" href="#" target="_blank" rel="noopener noreferrer nofollow" data-i18n="panel.homepage">Site oficial ↗</a>
 
     <audio id="audio" crossorigin="anonymous" preload="none"></audio>
   </aside>
 
   <!-- Legend -->
   <div id="legend" class="legend">
-    <span><i class="dot dot-fm"></i> FM</span>
-    <span><i class="dot dot-am"></i> AM</span>
-    <span><i class="dot dot-net"></i> Internet / outras</span>
+    <span><i class="dot dot-fm"></i> <span data-i18n="legend.fm">FM</span></span>
+    <span><i class="dot dot-am"></i> <span data-i18n="legend.am">AM</span></span>
+    <span><i class="dot dot-net"></i> <span data-i18n="legend.net">Internet / outras</span></span>
   </div>
 
   <footer id="credits">
-    Dados: <a href="https://www.radio-browser.info" target="_blank" rel="noopener noreferrer">Radio Browser</a>
-    · Globo: <a href="https://globe.gl" target="_blank" rel="noopener noreferrer">globe.gl</a>
+    <span data-i18n="credits.data">Dados:</span> <a href="https://www.radio-browser.info" target="_blank" rel="noopener noreferrer">Radio Browser</a>
+    · <span data-i18n="credits.globe">Globo:</span> <a href="https://globe.gl" target="_blank" rel="noopener noreferrer">globe.gl</a>
   </footer>
 
   <!-- Aviso de protocolo file:// (WebGL nao carrega texturas via file://) -->
   <div id="fileBanner" class="file-banner hidden">
-    <strong>Aviso:</strong> a pagina foi aberta via <code>file://</code>. O WebGL nao consegue
+    <span data-i18n-html="filebanner.html"><strong>Aviso:</strong> a pagina foi aberta via <code>file://</code>. O WebGL nao consegue
     carregar as texturas do globo nesse modo (bloqueio de seguranca do navegador), entao um globo
     simplificado sera exibido. Para a experiencia completa, sirva por HTTP — execute
     <code>servir.bat</code> (ou <code>python -m http.server 8777</code>) nesta pasta e acesse
-    <code>http://localhost:8777</code>.
-    <button id="fileBannerClose" aria-label="Fechar aviso">×</button>
+    <code>http://localhost:8777</code>.</span>
+    <button id="fileBannerClose" data-i18n-attr="aria-label:filebanner.close" aria-label="Fechar aviso">×</button>
   </div>
 
   <!-- Bibliotecas hospedadas localmente (vendor/) com Subresource Integrity (SRI).
@@ -126,6 +147,9 @@
     src="vendor/hls.min.js"
     integrity="sha384-9v3HcdYrO3D+OPDTjZ40RXocgE4GtXVCd3/mCS62JsM93JXgI1afJVuwjFvsu6ni"></script>
   <!-- Modulos da aplicacao -->
+  <script src="data/config.js"></script>
+  <script src="data/i18n.js"></script>
+  <script src="data/safeurl.js"></script>
   <script src="data/cache.js"></script>
   <script src="data/idbcache.js"></script>
   <script src="data/bandplan.js"></script>

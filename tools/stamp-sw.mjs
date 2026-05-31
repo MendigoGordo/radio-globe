@@ -19,6 +19,7 @@ const ROOT = path.resolve(__dirname, "..");
 
 const SHELL = [
   "index.html", "style.css", "app.js",
+  "data/config.js", "data/i18n.js", "data/safeurl.js",
   "data/cache.js", "data/idbcache.js", "data/bandplan.js",
   "data/regulatory.js", "data/geolayers.js", "data/fpsmeter.js",
   "data/normalize.worker.js",

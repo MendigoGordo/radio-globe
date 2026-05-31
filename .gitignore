@@ -20,3 +20,6 @@ tools/_states10m.geojson
 # Sistema
 Thumbs.db
 .DS_Store
+
+# Editor
+.vscode/

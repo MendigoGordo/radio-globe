@@ -29,6 +29,7 @@
     fallbackStates: null,       // 50m global (se nao houver particoes)
     showStates: false,
     visible: true,
+    labelMaxRank: 2,            // densidade inicial de rotulos (so os maiores)
   };
 
   const STATE_LOD_ALTITUDE = 1.1;   // abaixo disso, liga estados do pais em foco
@@ -47,6 +48,20 @@
     return res.json();
   }
 
+  // A fonte 3D do globe.gl (TextGeometry) nao possui glifos acentuados — sem
+  // tratamento, "Rússia" vira "R?ssia". Removemos os diacriticos APENAS para a
+  // renderizacao do rotulo (o dado original permanece intacto). Resultado:
+  // "Russia", "Suica", "Romenia" — legivel, em vez de quebrado.
+  function asciiLabel(str) {
+    if (!str) return str;
+    return String(str)
+      .normalize("NFD")                       // separa letra + acento
+      .replace(/[\u0300-\u036f]/g, "")        // remove os acentos
+      .replace(/[ı]/g, "i").replace(/[ł]/g, "l").replace(/[đ]/g, "d")
+      .replace(/[Ø]/g, "O").replace(/[ø]/g, "o").replace(/[ß]/g, "ss")
+      .replace(/[Þþ]/g, "th").replace(/[Ðð]/g, "d").replace(/[æ]/g, "ae").replace(/[Æ]/g, "AE");
+  }
+
   function buildCountryLabels(gj) {
     const out = [];
     for (const f of gj.features) {
@@ -54,9 +69,13 @@
       const lat = p.LABEL_Y, lng = p.LABEL_X;
       const name = p.NAME_PT || p.NAME_LONG || p.NAME;
       if (Number.isFinite(lat) && Number.isFinite(lng) && name) {
-        out.push({ lat, lng, text: name, kind: "country" });
+        // labelrank: 1 = mais importante (paises grandes), 6+ = menores.
+        const rank = Number.isFinite(p.LABELRANK) ? p.LABELRANK : 5;
+        out.push({ lat, lng, text: asciiLabel(name), kind: "country", rank });
       }
     }
+    // ordena por importancia (ajuda o filtro por zoom a ser estavel)
+    out.sort((a, b) => a.rank - b.rank);
     return out;
   }
 
@@ -67,7 +86,7 @@
       const lat = p.latitude, lng = p.longitude;
       const name = p.name;
       if (Number.isFinite(lat) && Number.isFinite(lng) && name) {
-        out.push({ lat, lng, text: name, kind: "state", cc: p.iso_a2 || "" });
+        out.push({ lat, lng, text: asciiLabel(name), kind: "state", cc: p.iso_a2 || "" });
       }
     }
     return out;
@@ -194,11 +213,23 @@
   function renderLabels() {
     const g = STATE.globe;
     if (!STATE.visible) { g.labelsData([]); return; }
-    let data = STATE.countryLabels;
+    // Filtra rotulos de pais por importancia conforme o zoom: longe mostra so
+    // os principais (evita a sopa de nomes sobrepostos da imagem), perto revela
+    // os menores. STATE_LABEL_MAXRANK e ajustado em applyLOD().
+    let data = STATE.countryLabels.filter((d) => d.rank <= STATE.labelMaxRank);
     if (STATE.showStates) {
       data = data.concat(buildStateLabels({ features: activeStateFeatures() }));
     }
     g.labelsData(data);
+  }
+
+  /** Limite de rank de rotulo (paises) por altitude da camera. */
+  function labelMaxRankForAltitude(alt) {
+    if (alt > 1.8) return 2;   // bem longe: so os maiores (Russia, Brasil, EUA...)
+    if (alt > 1.2) return 3;
+    if (alt > 0.8) return 4;
+    if (alt > 0.45) return 6;
+    return 99;                 // bem perto: todos
   }
 
   /** Carrega sob demanda a particao 10m de um pais. */
@@ -223,19 +254,26 @@
     if (!STATE.visible) return;
     const want = pov.altitude <= STATE_LOD_ALTITUDE;
 
-    let changed = false;
-    if (want !== STATE.showStates) { STATE.showStates = want; changed = true; }
+    let polysChanged = false;
+    let labelsChanged = false;
+    if (want !== STATE.showStates) { STATE.showStates = want; polysChanged = true; labelsChanged = true; }
+
+    // Densidade de rotulos de pais conforme o zoom (declutter progressivo).
+    // So afeta os LABELS — nao precisa reconstruir os poligonos.
+    const maxRank = labelMaxRankForAltitude(pov.altitude);
+    if (maxRank !== STATE.labelMaxRank) { STATE.labelMaxRank = maxRank; labelsChanged = true; }
 
     if (want && STATE.statesIndex) {
       // descobre o pais sob o centro da camera e carrega seus estados
       const cc = countryAt(pov.lat, pov.lng);
       if (cc && cc !== STATE.activeCC) {
         STATE.activeCC = cc;
-        changed = true;
+        polysChanged = true; labelsChanged = true;
         ensureCountryStates(cc);   // assincrono; re-renderiza ao chegar
       }
     }
-    if (changed) renderAll();
+    if (polysChanged) renderPolygons();
+    if (labelsChanged) renderLabels();
   }
 
   function setVisible(visible) {

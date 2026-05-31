@@ -19,7 +19,7 @@ npm run serve        # http://localhost:8777
 ```
 
 Abra `http://localhost:8777`. Parâmetros úteis: `?fps=1` mostra o medidor de FPS,
-`?band=fm&country=BR&q=jazz` restaura filtros.
+`?band=fm&country=BR&q=jazz&sort=votes&lang=en` restaura filtros, ordenação e idioma.
 
 ## Continuar em outra máquina
 
@@ -49,8 +49,8 @@ as partições de fronteiras já estão versionadas em `assets/geo/`.
 
 ```
 index.html, style.css, app.js     # app
-data/                             # módulos: cache, idbcache, bandplan,
-                                  #   regulatory, geolayers, fpsmeter, worker
+data/                             # módulos: i18n, safeurl, cache, idbcache,
+                                  #   bandplan, regulatory, geolayers, fpsmeter, worker
 assets/                           # texturas, ícones, geo/ (fronteiras)
 tools/                            # pipelines de build + servidor estático
 tests/                            # specs Playwright
@@ -65,8 +65,18 @@ sw.js, manifest.webmanifest       # PWA
   regulatório opcional por proximidade.
 - Clustering hexbin com nível de detalhe (LOD) e player HLS (hls.js).
 - Fronteiras e nomes de países (110m) + estados 10m particionados por país, sob demanda.
+- **Lista de estações acessível**: painel lateral navegável por teclado
+  (↑ ↓ Home End Enter) e otimizado para toque no mobile — alternativa ao clique
+  no globo. Botão ☰ na barra superior.
+- **Ordenação**: mais ouvidas, mais votadas, nome (A–Z) ou banda (FM/AM).
+- **Internacionalização (i18n)**: Português, English e Español. Detecta o idioma
+  por `?lang=`, `localStorage` ou navegador; persiste na URL.
+- **Player robusto**: estados reais de buffering, reconexão automática com backoff
+  ao cair o stream, e "tocando agora" via metadados ID3 (HLS), quando disponíveis.
+- **URLs de terceiros saneadas**: favicon e site oficial passam por validação de
+  esquema e upgrade http→https (evita mixed-content e esquemas perigosos).
 - PWA instalável (Service Worker com versionamento por hash).
-- Filtros por banda/país/busca persistidos na URL.
+- Filtros por banda/país/busca/ordenação/idioma persistidos na URL.
 
 ## Licença / créditos
 
