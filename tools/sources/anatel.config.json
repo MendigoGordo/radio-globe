@@ -1,0 +1,15 @@
+{
+  "name": "Anatel - Radiodifusao FM (BR)",
+  "file": "anatel-fm.csv",
+  "countryCode": "BR",
+  "delimiter": ";",
+  "defaultService": "FM",
+  "columns": {
+    "freq": "Frequência",
+    "lat": "Latitude",
+    "lng": "Longitude",
+    "callsign": "Indicativo",
+    "service": "Serviço"
+  },
+  "_nota": "Ajuste os nomes em 'columns' para baterem EXATAMENTE com o cabecalho do CSV baixado da Anatel. Rode 'node tools/build-regulatory.mjs tools/sources/anatel.config.json' que o script lista o cabecalho caso uma coluna nao seja encontrada."
+}

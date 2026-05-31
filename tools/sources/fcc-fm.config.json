@@ -1,0 +1,15 @@
+{
+  "name": "FCC - FM Query (US)",
+  "file": "fcc-fm.csv",
+  "countryCode": "US",
+  "delimiter": "|",
+  "defaultService": "FM",
+  "columns": {
+    "freq": "frequency",
+    "lat": "lat_deg",
+    "lng": "lon_deg",
+    "callsign": "callsign",
+    "service": "service"
+  },
+  "_nota": "A FCC publica os dados de FM/AM em formato pipe-delimited (|). Exporte a consulta para CSV/TXT, salve como fcc-fm.csv nesta pasta e ajuste 'columns' conforme o cabecalho real."
+}

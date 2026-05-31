@@ -1,0 +1,22 @@
+# Dependencias
+node_modules/
+
+# Artefatos de teste (Playwright)
+test-results/
+playwright-report/
+.playwright/
+
+# Bases regulatorias geradas a partir de CSV oficiais (gere com tools/build-regulatory.mjs)
+# Descomente se NAO quiser versionar os dados gerados:
+# data/regulatory.json
+# data/regulatory/
+
+# CSVs oficiais baixados (grandes; nao versionar)
+tools/sources/*.csv
+
+# Fonte bruta do Natural Earth 10m (~40 MB; gere as particoes com build-states.mjs)
+tools/_states10m.geojson
+
+# Sistema
+Thumbs.db
+.DS_Store

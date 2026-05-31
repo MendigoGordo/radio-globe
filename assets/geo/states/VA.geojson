@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Vaticano","name_en":"Vatican City","iso_a2":"VA","iso_3166_2":"VA-X01~","latitude":41.9034,"longitude":12.4534},"geometry":{"type":"Polygon","coordinates":[[[12.453,41.9039],[12.454,41.9039],[12.454,41.9028],[12.4531,41.9028],[12.4527,41.903],[12.4528,41.9034],[12.453,41.9039]]]}}]}

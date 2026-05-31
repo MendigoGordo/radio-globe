@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Globo 3D interativo com radios AM e FM do mundo todo, estilo Google Earth." />
+  <meta name="theme-color" content="#05070f" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <title>Radio Globe — Radios AM/FM do mundo</title>
+  <link rel="preconnect" href="https://de1.api.radio-browser.info" crossorigin />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="globeViz" aria-label="Globo terrestre 3D"></div>
+
+  <!-- Topbar -->
+  <header id="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">📡</span>
+      <div class="brand-text">
+        <strong>Radio Globe</strong>
+        <small>Radios AM / FM ao redor do planeta</small>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="band-toggle" role="group" aria-label="Filtrar por banda">
+        <button class="band-btn is-active" data-band="all">Todas</button>
+        <button class="band-btn" data-band="fm">FM</button>
+        <button class="band-btn" data-band="am">AM</button>
+      </div>
+
+      <select id="countrySelect" aria-label="Filtrar por pais">
+        <option value="">🌍 Top mundial</option>
+      </select>
+
+      <div class="search-box">
+        <input id="searchInput" type="search" placeholder="Buscar estacao ou tag..." aria-label="Buscar estacao" autocomplete="off" />
+      </div>
+
+      <button id="toggleGeo" class="icon-btn is-active" title="Mostrar/ocultar divisas e nomes" aria-label="Divisas e nomes" aria-pressed="true">🗺</button>
+      <button id="toggleRotate" class="icon-btn" title="Pausar/retomar rotacao" aria-label="Pausar rotacao">⏸</button>
+    </div>
+  </header>
+
+  <!-- Stats badge -->
+  <div id="stats" class="stats" aria-live="polite">
+    <span id="statCount">0</span> estacoes
+    <span class="mode-badge" id="modeBadge" title="Modo de visualizacao">Agrupado</span>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading" class="loading hidden">
+    <div class="spinner" aria-hidden="true"></div>
+    <span id="loadingText">Carregando estacoes...</span>
+  </div>
+
+  <!-- Station detail panel -->
+  <aside id="panel" class="panel hidden" aria-label="Detalhes da estacao">
+    <button id="panelClose" class="panel-close" aria-label="Fechar">×</button>
+    <div class="panel-head">
+      <img id="pFavicon" class="p-favicon" alt="" />
+      <div>
+        <h2 id="pName">—</h2>
+        <p id="pLocation" class="p-location">—</p>
+      </div>
+    </div>
+
+    <div class="player">
+      <button id="playBtn" class="play-btn" aria-label="Tocar">▶</button>
+      <div class="player-meta">
+        <span id="pNowPlaying">Pronto para tocar</span>
+        <div class="volume">
+          <span aria-hidden="true">🔊</span>
+          <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume" />
+        </div>
+      </div>
+    </div>
+
+    <dl class="p-info">
+      <div><dt>Banda</dt><dd id="pBand">—</dd></div>
+      <div><dt>Frequencia</dt><dd id="pFreq">—</dd></div>
+      <div><dt>Codec</dt><dd id="pCodec">—</dd></div>
+      <div><dt>Bitrate</dt><dd id="pBitrate">—</dd></div>
+      <div><dt>Idioma</dt><dd id="pLanguage">—</dd></div>
+      <div><dt>Votos</dt><dd id="pVotes">—</dd></div>
+    </dl>
+
+    <div id="pTags" class="p-tags"></div>
+
+    <a id="pHomepage" class="p-homepage" href="#" target="_blank" rel="noopener noreferrer">Site oficial ↗</a>
+
+    <audio id="audio" crossorigin="anonymous" preload="none"></audio>
+  </aside>
+
+  <!-- Legend -->
+  <div id="legend" class="legend">
+    <span><i class="dot dot-fm"></i> FM</span>
+    <span><i class="dot dot-am"></i> AM</span>
+    <span><i class="dot dot-net"></i> Internet / outras</span>
+  </div>
+
+  <footer id="credits">
+    Dados: <a href="https://www.radio-browser.info" target="_blank" rel="noopener noreferrer">Radio Browser</a>
+    · Globo: <a href="https://globe.gl" target="_blank" rel="noopener noreferrer">globe.gl</a>
+  </footer>
+
+  <!-- Aviso de protocolo file:// (WebGL nao carrega texturas via file://) -->
+  <div id="fileBanner" class="file-banner hidden">
+    <strong>Aviso:</strong> a pagina foi aberta via <code>file://</code>. O WebGL nao consegue
+    carregar as texturas do globo nesse modo (bloqueio de seguranca do navegador), entao um globo
+    simplificado sera exibido. Para a experiencia completa, sirva por HTTP — execute
+    <code>servir.bat</code> (ou <code>python -m http.server 8777</code>) nesta pasta e acesse
+    <code>http://localhost:8777</code>.
+    <button id="fileBannerClose" aria-label="Fechar aviso">×</button>
+  </div>
+
+  <!-- Bibliotecas hospedadas localmente (vendor/) com Subresource Integrity (SRI).
+       SRI valida recursos same-origin sem 'crossorigin'. Se um dia migrar para
+       um CDN cross-origin, adicione crossorigin="anonymous" nestas tags. -->
+  <script
+    src="vendor/globe.gl.min.js"
+    integrity="sha384-boR1tzK+m2z3pM2fQMq+PoYI0pIQmU+zWj+z3Oy5czzi97itGHXoL/YTj4ypMFbq"></script>
+  <script
+    src="vendor/hls.min.js"
+    integrity="sha384-9v3HcdYrO3D+OPDTjZ40RXocgE4GtXVCd3/mCS62JsM93JXgI1afJVuwjFvsu6ni"></script>
+  <!-- Modulos da aplicacao -->
+  <script src="data/cache.js"></script>
+  <script src="data/idbcache.js"></script>
+  <script src="data/bandplan.js"></script>
+  <script src="data/regulatory.js"></script>
+  <script src="data/geolayers.js"></script>
+  <script src="data/fpsmeter.js"></script>
+  <script src="app.js"></script>
+  <!-- Registro do Service Worker (PWA). So em http/https; ignorado em file:// -->
+  <script>
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch((e) =>
+          console.warn("[RadioGlobe] SW nao registrado:", e));
+      });
+    }
+  </script>
+</body>
+</html>

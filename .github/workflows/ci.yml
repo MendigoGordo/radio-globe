@@ -1,0 +1,52 @@
+name: CI
+
+# Assume que a RAIZ do repositorio e a pasta radio-globe (onde estao
+# package.json e playwright.config.mjs). Se o repo tiver o projeto em um
+# subdiretorio, mova este arquivo para <raiz>/.github/workflows/ e ajuste
+# os caminhos/working-directory de acordo.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    name: Lint + Playwright (Chromium headless)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check (node --check)
+        run: |
+          for f in app.js data/*.js sw.js tools/*.mjs; do
+            echo "checking $f"
+            node --check "$f"
+          done
+
+      - name: Install Playwright browser (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: npm test
+        env:
+          CI: "true"
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

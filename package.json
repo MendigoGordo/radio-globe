@@ -1,0 +1,20 @@
+{
+  "name": "radio-globe",
+  "version": "1.0.0",
+  "description": "Globo 3D interativo com radios AM/FM do mundo (estilo Google Earth).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs 8777",
+    "build:regulatory": "node tools/build-regulatory.mjs tools/sources/anatel.config.json",
+    "build:states": "node tools/build-states.mjs",
+    "build:icons": "node tools/gen-icons.mjs",
+    "stamp:sw": "node tools/stamp-sw.mjs",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:install": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
