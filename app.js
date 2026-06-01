@@ -1280,7 +1280,7 @@
         "/json/countries?order=stationcount&reverse=true&hidebroken=true",
         { cacheKey: "countries", ttl: 24 * 36e5 }
       );
-      const top = data.filter((c) => c.iso_3166_1 && c.stationcount > 0).slice(0, 60);
+      const top = data.filter((c) => c.iso_3166_1 && c.stationcount > 0).slice(0, 300);
       top.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
       const frag = document.createDocumentFragment();
       const br = top.find((c) => c.iso_3166_1 === "BR");
