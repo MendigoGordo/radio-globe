@@ -25,10 +25,17 @@ const MOCK_STATIONS = [
     state: "Berlin", tags: "chill", codec: "AAC", bitrate: 128, language: "english",
     votes: 30, clickcount: 10, geo_lat: 52.52, geo_long: 13.40,
   },
+  {
+    // SEM coordenadas: deve ganhar posicao APROXIMADA no centroide do pais (BR).
+    stationuuid: "uuid-4", name: "Radio Sem Geo BR", url_resolved: "https://example.com/semgeo",
+    homepage: "", favicon: "", country: "Brazil", countrycode: "BR",
+    state: "", tags: "talk", codec: "MP3", bitrate: 96, language: "portuguese",
+    votes: 5, clickcount: 3, geo_lat: "", geo_long: "",
+  },
 ];
 
 const MOCK_COUNTRIES = [
-  { name: "Brazil", iso_3166_1: "BR", stationcount: 2 },
+  { name: "Brazil", iso_3166_1: "BR", stationcount: 3 },
   { name: "Germany", iso_3166_1: "DE", stationcount: 1 },
 ];
 
@@ -228,4 +235,55 @@ test("usa o proxy (Cloudflare) quando configurado em GLOBAL_RADIO_3D_API_PROXY",
   await page.goto("/index.html");
   await expect(page.locator("#statCount")).not.toHaveText("0", { timeout: 20_000 });
   expect(proxyHit).toBe(true);
+});
+
+/* ---------------------------------------------------------------------------
+ * Localizacao aproximada: estacoes sem geo recebem ponto no centroide do pais.
+ * ------------------------------------------------------------------------- */
+
+test("estacao sem coordenadas ganha posicao aproximada no pais e e marcada", async ({ page }) => {
+  await page.goto("/index.html");
+  await expect(page.locator("#statCount")).not.toHaveText("0", { timeout: 20_000 });
+
+  // Verifica direto no helper de centroides (carregado globalmente).
+  const hasCentroids = await page.evaluate(() => !!(window.RadioCentroids && window.RadioCentroids.get("BR")));
+  expect(hasCentroids).toBe(true);
+
+  // A estacao sem geo deve aparecer na lista (contagem) e, ao ser selecionada,
+  // o painel indica localizacao aproximada (~).
+  await page.locator("#toggleList").click();
+  await page.locator("#searchInput").fill("Sem Geo");
+  const item = page.locator("#listItems .list-item").first();
+  await expect(item).toBeVisible({ timeout: 5_000 });
+  await item.click();
+
+  await expect(page.locator("#panel")).not.toHaveClass(/hidden/);
+  await expect(page.locator("#pLocation")).toContainText("(~)");
+});
+
+test("placeApprox e deterministico e fica dentro do raio do pais", async ({ page }) => {
+  await page.goto("/index.html");
+  await expect(page.locator("#statCount")).not.toHaveText("0", { timeout: 20_000 });
+
+  const result = await page.evaluate(() => {
+    const C = window.RadioCentroids;
+    if (!C) return { ok: false };
+    const a = C.placeApprox("BR", 7);
+    const b = C.placeApprox("BR", 7);
+    const center = C.get("BR");
+    const dLat = a.lat - center.lat;
+    const dLng = (a.lng - center.lng) * Math.cos((center.lat * Math.PI) / 180);
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+    return {
+      ok: true,
+      deterministic: a.lat === b.lat && a.lng === b.lng,
+      withinRadius: dist <= center.r + 1e-6,
+      nullForUnknown: C.placeApprox("ZZ", 0) === null,
+    };
+  });
+
+  expect(result.ok).toBe(true);
+  expect(result.deterministic).toBe(true);
+  expect(result.withinRadius).toBe(true);
+  expect(result.nullForUnknown).toBe(true);
 });

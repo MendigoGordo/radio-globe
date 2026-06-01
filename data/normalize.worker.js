@@ -19,6 +19,14 @@ try {
   // Sem o bandplan, usamos fallback fraco abaixo.
 }
 
+// Carrega os centroides de pais (define self.RadioCentroids). Usados para
+// posicionar de forma aproximada as estacoes SEM coordenadas reais.
+try {
+  importScripts("centroids.js");
+} catch (e) {
+  // Sem centroides, estacoes sem geo seguem sem ponto (lista/contagem ok).
+}
+
 function fallbackClassify(s) {
   const hay = `${s.name || ""} ${s.tags || ""}`.toLowerCase();
   if (/\bfm\b/.test(hay)) return { band: "fm", freq: null, unit: "", confidence: "low" };
@@ -28,6 +36,8 @@ function fallbackClassify(s) {
 
 function normalize(raw) {
   const classify = (self.RadioBandPlan && self.RadioBandPlan.classify) || fallbackClassify;
+  const centroids = self.RadioCentroids || null;
+  const approxCount = Object.create(null); // contador por pais p/ espalhar
   const seen = new Set();
   const out = [];
   for (const s of raw) {
@@ -41,11 +51,26 @@ function normalize(raw) {
     if (!id || seen.has(id)) continue;
     seen.add(id);
 
+    // Sem coordenada real: posiciona de forma APROXIMADA no pais (centroide +
+    // espalhamento deterministico) para nao "sumir" do globo. Marca approx.
+    let approxLocation = false;
+    if (!hasGeo && centroids && s.countrycode) {
+      const cc = String(s.countrycode).toUpperCase();
+      const n = approxCount[cc] || 0;
+      const p = centroids.placeApprox(cc, n);
+      if (p) {
+        lat = p.lat; lng = p.lng;
+        approxLocation = true;
+        approxCount[cc] = n + 1;
+      }
+    }
+
     const cls = classify({ name: s.name, tags: s.tags });
     out.push({
       id,
       name: (s.name || "").trim() || "Sem nome",
       lat, lng,
+      approxLocation,
       url: s.url_resolved || s.url || "",
       homepage: s.homepage || "",
       favicon: s.favicon || "",

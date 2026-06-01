@@ -21,6 +21,7 @@ const SHELL = [
   "index.html", "style.css", "app.js",
   "data/config.js", "data/i18n.js", "data/safeurl.js",
   "data/cache.js", "data/idbcache.js", "data/bandplan.js",
+  "data/centroids.js",
   "data/regulatory.js", "data/geolayers.js", "data/fpsmeter.js",
   "data/normalize.worker.js",
   "vendor/globe.gl.min.js", "vendor/hls.min.js",

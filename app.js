@@ -329,6 +329,8 @@
     const seen = new Set();
     const out = [];
     const classify = (window.RadioBandPlan && window.RadioBandPlan.classify) || fallbackClassify;
+    const centroids = window.RadioCentroids || null;
+    const approxCount = Object.create(null); // contador por pais p/ espalhar
     for (const s of raw) {
       let lat = Number(s.geo_lat);
       let lng = Number(s.geo_long);
@@ -340,11 +342,26 @@
       if (!id || seen.has(id)) continue;
       seen.add(id);
 
+      // Sem coordenada real: posiciona de forma APROXIMADA no pais (centroide +
+      // espalhamento deterministico) para nao "sumir" do globo. Marca approx.
+      let approxLocation = false;
+      if (!hasGeo && centroids && s.countrycode) {
+        const cc = String(s.countrycode).toUpperCase();
+        const n = approxCount[cc] || 0;
+        const p = centroids.placeApprox(cc, n);
+        if (p) {
+          lat = p.lat; lng = p.lng;
+          approxLocation = true;
+          approxCount[cc] = n + 1;
+        }
+      }
+
       const cls = classify({ name: s.name, tags: s.tags });
       out.push({
         id,
         name: (s.name || "").trim() || "Sem nome",
         lat, lng,
+        approxLocation,
         url: s.url_resolved || s.url || "",
         homepage: s.homepage || "",
         favicon: s.favicon || "",
@@ -743,6 +760,9 @@
     const bandTxt = d.band === "net" ? t("band.net.short") : d.band.toUpperCase();
     const freq = d.freq != null ? ` ${d.freq} ${d.freqUnit}` : "";
     const loc = [d.state, d.country].filter(Boolean).join(", ");
+    const approx = d.approxLocation
+      ? `<div style="color:#c9a227;font-weight:400;margin-top:2px;font-size:11px">${escapeHTML(t("location.approx"))}</div>`
+      : "";
     return `
       <div style="background:rgba(10,14,26,.92);border:1px solid rgba(120,160,255,.25);
                   padding:8px 10px;border-radius:8px;font:600 12px/1.3 'Segoe UI',sans-serif;
@@ -750,6 +770,7 @@
         <div style="color:${COLORS[d.band] || COLORS.net}">● ${escapeHTML(bandTxt + freq)}</div>
         <div style="font-size:13px;margin-top:2px">${escapeHTML(d.name)}</div>
         ${loc ? `<div style="color:#93a0bd;font-weight:400;margin-top:2px">${escapeHTML(loc)}</div>` : ""}
+        ${approx}
       </div>`;
   }
 
@@ -933,7 +954,9 @@
     el.panel.classList.remove("hidden");
     el.pName.textContent = s.name;
     const _flag = flagEmoji(s.countrycode);
-    el.pLocation.textContent = (_flag ? _flag + " " : "") + ([s.state, s.country].filter(Boolean).join(", ") || t("location.unknown"));
+    const _loc = ([s.state, s.country].filter(Boolean).join(", ") || t("location.unknown"));
+    el.pLocation.textContent = (_flag ? _flag + " " : "") + _loc + (s.approxLocation ? " (~)" : "");
+    el.pLocation.title = s.approxLocation ? t("location.approx") : "";
     if (el.favBtn) { el.favBtn.textContent = isFav(s.id) ? "★" : "☆"; el.favBtn.classList.toggle("is-fav", isFav(s.id)); }
 
     // Favicon: URL de terceiro saneada (https-upgrade, esquemas seguros). #3
