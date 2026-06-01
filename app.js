@@ -83,7 +83,7 @@
   const SORTS = ["relevance", "votes", "name", "band"];
   // Teto de itens renderizados na lista lateral (a navegacao por teclado fica
   // fluida e o DOM enxuto; o restante e acessivel refinando filtros/busca).
-  const LIST_LIMIT = 300;
+  const LIST_LIMIT = 1000;
 
   // Player: reconexao automatica com backoff (stream cai o tempo todo).
   const RECONNECT_MAX = 3;
@@ -97,6 +97,9 @@
   /* ----------------------------- Estado ----------------------------------- */
   const state = {
     band: BAND.ALL,
+    view: "all",
+    pendingStation: null,
+    autoRegion: false,
     country: "",
     search: "",
     sort: "relevance",
@@ -135,6 +138,13 @@
     loadingText: $("#loadingText"),
     panel: $("#panel"),
     panelClose: $("#panelClose"),
+    favBtn: $("#favBtn"),
+    shareBtn: $("#shareBtn"),
+    toggleFav: $("#toggleFav"),
+    toggleRecent: $("#toggleRecent"),
+    randomBtn: $("#randomBtn"),
+    installBtn: $("#installBtn"),
+    genreChips: $("#genreChips"),
     pFavicon: $("#pFavicon"),
     pName: $("#pName"),
     pLocation: $("#pLocation"),
@@ -255,13 +265,15 @@
 
   function buildStationQuery({ countrycode = "", limit = MAX_STATIONS } = {}) {
     const params = new URLSearchParams({
-      has_geo_info: "true",
       hidebroken: "true",
       order: "clickcount",
       reverse: "true",
       limit: String(limit),
     });
+    // Mundo: apenas geolocalizadas (globo global). Pais: todas (as sem
+    // coordenadas aparecem na lista, mesmo sem ponto no globo).
     if (countrycode) params.set("countrycode", countrycode);
+    else params.set("has_geo_info", "true");
     return `/json/stations/search?${params.toString()}`;
   }
 
@@ -318,11 +330,12 @@
     const out = [];
     const classify = (window.RadioBandPlan && window.RadioBandPlan.classify) || fallbackClassify;
     for (const s of raw) {
-      const lat = Number(s.geo_lat);
-      const lng = Number(s.geo_long);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
-      if (lat === 0 && lng === 0) continue;
+      let lat = Number(s.geo_lat);
+      let lng = Number(s.geo_long);
+      const hasGeo = Number.isFinite(lat) && Number.isFinite(lng)
+        && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+        && !(lat === 0 && lng === 0);
+      if (!hasGeo) { lat = null; lng = null; }
       const id = s.stationuuid;
       if (!id || seen.has(id)) continue;
       seen.add(id);
@@ -362,9 +375,69 @@
   }
 
   /* ===================== Filtros ========================================== */
+  /* ===================== Favoritos + utilidades ========================= */
+  const FAV_KEY = "rg:favs";
+  function loadFavs() {
+    try { return new Map(JSON.parse(localStorage.getItem(FAV_KEY) || "[]")); }
+    catch (_) { return new Map(); }
+  }
+  const favs = loadFavs();
+  const RECENT_KEY = "rg:recent";
+  function loadRecents() {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch (_) { return []; }
+  }
+  function pushRecent(s) {
+    try {
+      const list = loadRecents().filter((x) => x.id !== s.id);
+      list.unshift(s);
+      localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 15)));
+    } catch (_) {}
+  }
+  const GENRES = ["news","music","pop","rock","talk","sports","jazz","classical","dance","electronic"];
+  function setView(v) {
+    state.view = state.view === v ? "all" : v;
+    if (el.toggleFav) el.toggleFav.classList.toggle("is-active", state.view === "fav");
+    if (el.toggleRecent) el.toggleRecent.classList.toggle("is-active", state.view === "recent");
+    applyFilters();
+  }
+  function setPlayingRing(s) {
+    if (!globe) return;
+    globe.ringsData(s && Number.isFinite(s.lat) ? [{ lat: s.lat, lng: s.lng }] : []);
+  }
+  function buildGenreChips() {
+    if (!el.genreChips) return;
+    GENRES.forEach((g) => {
+      const b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.dataset.tag = g;
+      b.textContent = g.charAt(0).toUpperCase() + g.slice(1);
+      b.addEventListener("click", () => {
+        const active = state.search.trim().toLowerCase() === g;
+        state.search = active ? "" : g;
+        if (el.search) el.search.value = state.search;
+        [...el.genreChips.children].forEach((c) => c.classList.toggle("is-active", !active && c.dataset.tag === g));
+        applyFilters();
+      });
+      el.genreChips.appendChild(b);
+    });
+  }
+  function isFav(id) { return favs.has(id); }
+  function toggleFav(s) {
+    if (favs.has(s.id)) favs.delete(s.id); else favs.set(s.id, s);
+    try { localStorage.setItem(FAV_KEY, JSON.stringify([...favs])); } catch (_) {}
+  }
+  function flagEmoji(cc) {
+    if (!cc || !/^[A-Za-z]{2}$/.test(cc)) return "";
+    return String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1F1E6 + c.charCodeAt(0) - 65));
+  }
+  function detectRegion() {
+    try { return (new Intl.Locale(navigator.language).maximize().region || "").toUpperCase(); }
+    catch (_) { return ""; }
+  }
+
   function applyFilters() {
     const q = state.search.trim().toLowerCase();
-    state.visible = state.allStations.filter((s) => {
+    const source = state.view === "fav" ? [...favs.values()] : state.view === "recent" ? loadRecents() : state.allStations;
+    state.visible = source.filter((s) => {
       if (state.band !== BAND.ALL && s.band !== state.band) return false;
       if (q) {
         const inName = s.name.toLowerCase().includes(q);
@@ -411,6 +484,7 @@
     if (state.search.trim()) params.set("q", state.search.trim());
     if (state.sort && state.sort !== "relevance") params.set("sort", state.sort);
     if (I18N.getLang && I18N.getLang() !== I18N.DEFAULT_LANG) params.set("lang", I18N.getLang());
+    if (state.selected) params.set("station", state.selected.id);
     const qs = params.toString();
     const url = qs ? `${location.pathname}?${qs}` : location.pathname;
     history.replaceState(null, "", url);
@@ -427,6 +501,8 @@
     if (q) state.search = q;
     const sort = p.get("sort");
     if (sort && SORTS.includes(sort)) state.sort = sort;
+    const station = p.get("station");
+    if (station) state.pendingStation = station;
   }
 
   /** Reflete o estado atual nos controles da UI. */
@@ -498,8 +574,16 @@
     controls.dampingFactor = 0.08;
     controls.minDistance = 101;   // permite aproximar mais (separa regioes densas)
 
-    globe.pointOfView({ lat: 15, lng: -40, altitude: 2.4 }, 0);
+    globe.pointOfView({ lat: 15, lng: -40, altitude: 4 }, 0);
+    setTimeout(() => globe.pointOfView({ lat: 15, lng: -40, altitude: 2.4 }, 1600), 200);
     globe.onZoom(onZoom);
+    globe
+      .ringsData([])
+      .ringLat("lat").ringLng("lng")
+      .ringColor(() => (x) => `rgba(110,231,160,${1 - x})`)
+      .ringMaxRadius(3.2)
+      .ringPropagationSpeed(1.3)
+      .ringRepeatPeriod(720);
 
     window.addEventListener("resize", onResize, { passive: true });
     onResize();
@@ -583,7 +667,7 @@
       globe.pointsData(visiblePointsForCamera());
       globe.hexBinPointsData([]);
     } else {
-      globe.hexBinPointsData(state.visible);
+      globe.hexBinPointsData(state.visible.filter((s) => s.lat != null));
       globe.pointsData([]);
     }
   }
@@ -595,7 +679,7 @@
    * seguem em state.visible (lista, busca, contagem).
    */
   function visiblePointsForCamera() {
-    const all = state.visible;
+    const all = state.visible.filter((s) => s.lat != null);
     if (all.length <= MAX_RENDERED_POINTS) return all;
 
     const { lat, lng, altitude } = state.pov || { lat: 0, lng: 0, altitude: 0.6 };
@@ -672,7 +756,7 @@
   /* ===================== Interacao ======================================= */
   function onHexClick(d) {
     // aproxima na regiao do bin -> dispara LOD para pontos
-    globe.pointOfView({ lat: d.points[0].lat, lng: d.points[0].lng, altitude: 0.7 }, 900);
+    globe.pointOfView({ lat: d.points[0].lat, lng: d.points[0].lng, altitude: 0.35 }, 900);
   }
 
   function onStationClick(station) {
@@ -684,10 +768,11 @@
     state.selected = station;
     if (fly && globe && Number.isFinite(station.lat) && Number.isFinite(station.lng)) {
       if (state.rotating) setRotating(false);
-      globe.pointOfView({ lat: station.lat, lng: station.lng, altitude: 0.55 }, 900);
+      globe.pointOfView({ lat: station.lat, lng: station.lng, altitude: 0.2 }, 1000);
     }
     if (openPanel) showPanel(station);
     highlightListItem(station.id);
+    syncURL();
   }
 
   /* ===================== Lista de estacoes (acessivel) =================== */
@@ -754,7 +839,7 @@
     const bandTxt = s.band === "net" ? t("band.net.short") : s.band.toUpperCase();
     const freq = s.freq != null ? ` ${s.freq} ${s.freqUnit}` : "";
     const loc = [s.state, s.country].filter(Boolean).join(", ");
-    meta.textContent = [bandTxt + freq, loc].filter(Boolean).join(" · ");
+    meta.textContent = (flagEmoji(s.countrycode) ? flagEmoji(s.countrycode) + " " : "") + [bandTxt + freq, loc].filter(Boolean).join(" · ");
 
     body.appendChild(name);
     body.appendChild(meta);
@@ -847,7 +932,9 @@
   function showPanel(s) {
     el.panel.classList.remove("hidden");
     el.pName.textContent = s.name;
-    el.pLocation.textContent = [s.state, s.country].filter(Boolean).join(", ") || t("location.unknown");
+    const _flag = flagEmoji(s.countrycode);
+    el.pLocation.textContent = (_flag ? _flag + " " : "") + ([s.state, s.country].filter(Boolean).join(", ") || t("location.unknown"));
+    if (el.favBtn) { el.favBtn.textContent = isFav(s.id) ? "★" : "☆"; el.favBtn.classList.toggle("is-fav", isFav(s.id)); }
 
     // Favicon: URL de terceiro saneada (https-upgrade, esquemas seguros). #3
     const safeFav = SAFE.sanitizeImage(s.favicon);
@@ -912,6 +999,7 @@
     stopAudio();
     state.selected = null;
     highlightListItem(null);
+    syncURL();
   }
 
   /* ===================== Player de audio (HLS + nativo) ================== */
@@ -967,6 +1055,7 @@
     el.audio.pause();
     el.audio.removeAttribute("src");
     try { el.audio.load(); } catch (_) {}
+    setPlayingRing(null);
     resetPlayerUI();
   }
 
@@ -1082,6 +1171,7 @@
     if (!el.pNowPlaying.getAttribute("data-track")) setNowPlaying(t("player.live"));
     reconnect.tries = 0;           // sucesso zera o contador de tentativas
     reconnect.active = false;
+    if (state.selected) { pushRecent(state.selected); setPlayingRing(state.selected); }
   }
 
   /** Stream caiu (erro/stall): tenta reconectar com backoff, ou desiste. */
@@ -1144,7 +1234,7 @@
   async function loadStations() {
     showLoading(state.country ? t("loading.country") : t("loading.stations"));
     try {
-      const cacheKey = `stations:${state.country || "world"}:${MAX_STATIONS}`;
+      const cacheKey = `stations:v2:${state.country || "world"}:${MAX_STATIONS}`;
       const raw = await apiGet(buildStationQuery({ countrycode: state.country }),
         { cacheKey, idb: true, race: true, timeout: STATION_TIMEOUT_MS });
       state.allStations = await normalizeAsync(raw);
@@ -1160,15 +1250,28 @@
       applyFilters();
       updateModeBadge();
       if (state.allStations.length === 0) {
+        if (state.autoRegion) { state.autoRegion = false; state.country = ""; if (el.country) el.country.value = ""; return loadStations(); }
         el.loadingText.textContent = t("loading.none");
         return;
       }
+      selectPendingStation();
     } catch (err) {
       el.loadingText.textContent = t("loading.error");
       console.error("[GlobalRadio3D] Falha no carregamento:", err);
       return;
     }
     hideLoading();
+  }
+
+  async function selectPendingStation() {
+    if (!state.pendingStation) return;
+    const id = state.pendingStation; state.pendingStation = null;
+    let s = state.allStations.find((x) => x.id === id) || favs.get(id);
+    if (!s) {
+      try { s = normalizeSync(await apiGet(`/json/stations/byuuid/${encodeURIComponent(id)}`, { timeout: REQUEST_TIMEOUT_MS }) || [])[0]; }
+      catch (_) {}
+    }
+    if (s) selectStation(s, { fly: true, openPanel: true });
   }
 
   async function loadCountries() {
@@ -1187,8 +1290,17 @@
         frag.appendChild(makeCountryOption(c));
       });
       el.country.appendChild(frag);
-      // reflete o pais vindo da URL no select (apos popular as opcoes)
-      if (state.country) el.country.value = state.country;
+      // reflete o pais vindo da URL/regiao no select (apos popular as opcoes)
+      if (state.country) {
+        if (![...el.country.options].some((o) => o.value === state.country)) {
+          let nm = state.country;
+          try { nm = new Intl.DisplayNames([I18N.getLang()], { type: "region" }).of(state.country) || nm; } catch (_) {}
+          const opt = document.createElement("option");
+          opt.value = state.country; opt.textContent = `${flagEmoji(state.country)} ${nm}`.trim();
+          el.country.insertBefore(opt, el.country.firstChild.nextSibling);
+        }
+        el.country.value = state.country;
+      }
     } catch (err) {
       console.warn("[GlobalRadio3D] Nao foi possivel carregar a lista de paises:", err);
     }
@@ -1292,6 +1404,36 @@
     }
 
     el.panelClose.addEventListener("click", closePanel);
+    if (el.favBtn) el.favBtn.addEventListener("click", () => {
+      if (!state.selected) return;
+      toggleFav(state.selected);
+      el.favBtn.textContent = isFav(state.selected.id) ? "★" : "☆";
+      el.favBtn.classList.toggle("is-fav", isFav(state.selected.id));
+      if (state.view === "fav") applyFilters();
+    });
+    if (el.shareBtn) el.shareBtn.addEventListener("click", async () => {
+      syncURL();
+      try { await navigator.clipboard.writeText(location.href); el.shareBtn.textContent = "✓"; setTimeout(() => { el.shareBtn.textContent = String.fromCodePoint(0x1f517); }, 1500); } catch (_) {}
+    });
+    if (el.toggleFav) el.toggleFav.addEventListener("click", () => setView("fav"));
+    if (el.toggleRecent) el.toggleRecent.addEventListener("click", () => setView("recent"));
+    if (el.randomBtn) el.randomBtn.addEventListener("click", () => {
+      const pool = state.visible.length ? state.visible : state.allStations;
+      if (pool.length) selectStation(pool[Math.floor(Math.random() * pool.length)], { fly: true, openPanel: true });
+    });
+    let deferredPrompt = null;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault(); deferredPrompt = e;
+      if (el.installBtn) el.installBtn.hidden = false;
+    });
+    if (el.installBtn) el.installBtn.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      try { await deferredPrompt.userChoice; } catch (_) {}
+      deferredPrompt = null; el.installBtn.hidden = true;
+    });
+    window.addEventListener("appinstalled", () => { if (el.installBtn) el.installBtn.hidden = true; });
+    buildGenreChips();
     el.playBtn.addEventListener("click", togglePlay);
     el.volume.addEventListener("input", () => { el.audio.volume = Number(el.volume.value); });
 
@@ -1349,6 +1491,10 @@
       el.fileBanner.classList.remove("hidden");
     }
     readURL();                 // 1) le filtros da URL
+    if (!state.country && !state.pendingStation && !state.search) {
+      const cc = detectRegion();
+      if (cc) { state.country = cc; state.autoRegion = true; }
+    }
     initGlobe();
     bindEvents();
     // medidor de FPS opcional (?fps=1) para calibrar o teto de estacoes

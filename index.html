@@ -89,13 +89,19 @@
         <input id="searchInput" type="search" data-i18n-attr="placeholder:search.placeholder;aria-label:search.aria" placeholder="Buscar estacao ou tag..." aria-label="Buscar estacao" autocomplete="off" />
       </div>
 
+      <button id="toggleFav" class="icon-btn" data-i18n-attr="title:fav.filter;aria-label:fav.filter" title="Favoritas" aria-label="Favoritas" aria-pressed="false">⭐</button>
+      <button id="toggleRecent" class="icon-btn" data-i18n-attr="title:recent;aria-label:recent" title="Recentes" aria-label="Recentes" aria-pressed="false">↺</button>
+      <button id="randomBtn" class="icon-btn" data-i18n-attr="title:random;aria-label:random" title="Surpreenda-me" aria-label="Surpreenda-me">🎲</button>
       <button id="toggleList" class="icon-btn" data-i18n-attr="title:toggle.list.open;aria-label:toggle.list.open" title="Mostrar lista de estacoes" aria-label="Mostrar lista de estacoes" aria-pressed="false" aria-controls="listPanel">☰</button>
       <button id="toggleGeo" class="icon-btn is-active" data-i18n-attr="title:toggle.geo;aria-label:toggle.geo" title="Mostrar/ocultar divisas e nomes" aria-label="Divisas e nomes" aria-pressed="true">🗺</button>
       <button id="toggleRotate" class="icon-btn" data-i18n-attr="title:toggle.rotate.pause;aria-label:toggle.rotate.pause" title="Pausar/retomar rotacao" aria-label="Pausar rotacao">⏸</button>
 
+      <button id="installBtn" class="icon-btn" hidden data-i18n-attr="title:install;aria-label:install" title="Instalar app" aria-label="Instalar app">⬇</button>
       <select id="langSelect" data-i18n-attr="aria-label:lang.aria" aria-label="Idioma"></select>
     </div>
   </header>
+
+  <div id="genreChips" class="genre-chips" role="group" aria-label="Generos"></div>
 
   <!-- Stats badge -->
   <div id="stats" class="stats" aria-live="polite">
@@ -128,6 +134,11 @@
         <h2 id="pName">—</h2>
         <p id="pLocation" class="p-location">—</p>
       </div>
+    </div>
+
+    <div class="p-actions">
+      <button id="favBtn" class="icon-btn" data-i18n-attr="title:fav.add;aria-label:fav.add" title="Favoritar" aria-label="Favoritar">☆</button>
+      <button id="shareBtn" class="icon-btn" data-i18n-attr="title:share;aria-label:share" title="Compartilhar" aria-label="Compartilhar">🔗</button>
     </div>
 
     <div class="player">

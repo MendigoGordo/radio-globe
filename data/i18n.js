@@ -22,7 +22,7 @@
   "use strict";
 
   const STORAGE_KEY = "rg:lang";
-  const DEFAULT_LANG = "pt-BR";
+  const DEFAULT_LANG = "en";
 
   // Idiomas suportados (rotulos exibidos no seletor).
   const LANGS = [
@@ -34,6 +34,12 @@
   const DICT = {
     "pt-BR": {
       "html.lang": "pt-BR",
+      "recent": "Recentes",
+      "random": "Surpreenda-me",
+      "install": "Instalar app",
+      "fav.filter": "Favoritas",
+      "fav.add": "Favoritar",
+      "share": "Compartilhar",
       "brand.tagline": "Rádios AM / FM ao redor do planeta",
       "band.all": "Todas",
       "band.fm": "FM",
@@ -111,6 +117,12 @@
 
     "en": {
       "html.lang": "en",
+      "recent": "Recently played",
+      "random": "Surprise me",
+      "install": "Install app",
+      "fav.filter": "Favorites",
+      "fav.add": "Add to favorites",
+      "share": "Share",
       "brand.tagline": "AM / FM radios around the planet",
       "band.all": "All",
       "band.fm": "FM",
@@ -188,6 +200,12 @@
 
     "es": {
       "html.lang": "es",
+      "recent": "Recientes",
+      "random": "Sorpréndeme",
+      "install": "Instalar app",
+      "fav.filter": "Favoritas",
+      "fav.add": "Favorita",
+      "share": "Compartir",
       "brand.tagline": "Radios AM / FM alrededor del planeta",
       "band.all": "Todas",
       "band.fm": "FM",

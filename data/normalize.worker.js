@@ -31,11 +31,12 @@ function normalize(raw) {
   const seen = new Set();
   const out = [];
   for (const s of raw) {
-    const lat = Number(s.geo_lat);
-    const lng = Number(s.geo_long);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
-    if (lat === 0 && lng === 0) continue;
+    let lat = Number(s.geo_lat);
+    let lng = Number(s.geo_long);
+    const hasGeo = Number.isFinite(lat) && Number.isFinite(lng)
+      && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+      && !(lat === 0 && lng === 0);
+    if (!hasGeo) { lat = null; lng = null; }
     const id = s.stationuuid;
     if (!id || seen.has(id)) continue;
     seen.add(id);

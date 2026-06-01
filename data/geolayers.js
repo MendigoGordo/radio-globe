@@ -32,7 +32,7 @@
     labelMaxRank: 2,            // densidade inicial de rotulos (so os maiores)
   };
 
-  const STATE_LOD_ALTITUDE = 1.1;   // abaixo disso, liga estados do pais em foco
+  const STATE_LOD_ALTITUDE = 0.7;   // abaixo disso, liga estados do pais em foco
 
   const STYLE = {
     countryStroke: "#5b6b8c",
@@ -210,6 +210,26 @@
     g.polygonsData(feats);
   }
 
+  // Remove rotulos sobrepostos: mantem os de maior prioridade (paises por rank,
+  // depois estados) e descarta os que ficarem perto demais para o zoom atual.
+  function declutterLabels(labels, alt) {
+    const sep = Math.max(0.9, Math.min(8, (alt || 0.6) * 3.4));
+    const sep2 = sep * sep;
+    const pri = (d) => d.kind === "state" ? 100 : (d.rank || 0);
+    const sorted = labels.slice().sort((a, b) => pri(a) - pri(b));
+    const kept = [];
+    for (const d of sorted) {
+      let ok = true;
+      for (const k of kept) {
+        let dLng = Math.abs(d.lng - k.lng); if (dLng > 180) dLng = 360 - dLng;
+        const dLat = d.lat - k.lat;
+        if (dLat * dLat + dLng * dLng < sep2) { ok = false; break; }
+      }
+      if (ok) kept.push(d);
+    }
+    return kept;
+  }
+
   function renderLabels() {
     const g = STATE.globe;
     if (!STATE.visible) { g.labelsData([]); return; }
@@ -220,7 +240,7 @@
     if (STATE.showStates) {
       data = data.concat(buildStateLabels({ features: activeStateFeatures() }));
     }
-    g.labelsData(data);
+    g.labelsData(declutterLabels(data, STATE.curAltitude));
   }
 
   /** Limite de rank de rotulo (paises) por altitude da camera. */
@@ -252,6 +272,7 @@
   /** Chamado a cada zoom/rotacao: liga estados e troca o pais em foco. */
   function applyLOD(pov) {
     if (!STATE.visible) return;
+    STATE.curAltitude = pov.altitude;
     const want = pov.altitude <= STATE_LOD_ALTITUDE;
 
     let polysChanged = false;
